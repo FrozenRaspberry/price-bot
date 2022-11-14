@@ -4,14 +4,15 @@ import requests
 import json
 import time
 import datetime
-from telegram_lib import sendMessage
+from telegram_lib import *
 from keys import *
 sendMessage('ok pd order start.')
+lastMessageId = 0
 
-
-proxies = {
-   'https': 'http://127.0.0.1:7890'
-}
+if (need_proxy):
+	proxies = {'https': 'http://127.0.0.1:7890'}
+else:
+	proxies = {}
 
 def get_time():
 	now = datetime.datetime.utcnow()
@@ -39,6 +40,7 @@ def get_header(endpoint):
 	return header
 
 def GetPendingOrders():
+	pdOrders = {}
 	endpoint= '/api/v5/trade/orders-pending'
 	url = okx_base_url + endpoint
 	headers = get_header(endpoint)
@@ -47,27 +49,62 @@ def GetPendingOrders():
 		r_data = r.json()
 		#instId,px,sz,ordType,side
 		if (r_data['code'] == '0'):
-			return r_data['data']
+			for o in r_data['data']:
+				pdOrders[o['ordId']] = o
+		else:
+			return None
 	except Exception as e:
 		print('!EXCEPTION\n', e)
-		print(r)
+		return None
+	return pdOrders
 
 def showOrders(orders):
-	for order in orders:
-		print(order['ETH-USDT-SWAP'], order['type'], order['side'], order['px'], order['sz'])
+	for orderId in orders:
+		order = orders[orderId]
+		print(order['instId'], order['ordType'], order['side'], order['px'], order['sz'])
+		sendMessage(orderToString(order))
 
-def checkOrderDiff(orders):
-	for order in orders:
-		print(order['ETH-USDT-SWAP'], order['type'], order['side'], order['px'], order['sz'])
+def orderToString(order):
+	return order['instId'] + ' ' +  order['ordType'] + ' ' +  order['side'] + ' ' +  order['px'] + ' ' +  order['sz']
+
+def checkOpenOrderDiff(newOrders):
+	#check new order
+	for newOrderId in newOrders:
+		if (orderData.get(newOrderId) == None):
+			orderData[newOrderId] = newOrders[newOrderId]
+			sendMessage('新订单: ' + orderToString(newOrders[newOrderId]))
+	#check if order is same
+	if (len(orderData) == len(newOrders)):
+		return
+	#delete filled order
+	orderToDelete = []
+	for oldOrderId in orderData:
+		if (newOrders.get(oldOrderId) == None):
+			sendMessage('订单消失: ' + orderToString(orderData[oldOrderId]))
+			orderToDelete.append(oldOrderId)
+	for orderId in orderToDelete:
+		orderData.pop(orderId)
 
 
 tickCount = 0
 orderData = GetPendingOrders()
 sendMessage(str(len(orderData)) + ' pending orders')
 showOrders(orderData)
+lastMessageId = bot.get_updates()[-1].message.message_id
+print('init msg id' + str(lastMessageId))
+
 while True:
-
-
-	time.sleep(2)
-	print('----------------------',tickCount)
+	newOrders = GetPendingOrders()
+	if newOrders is None:
+		time.sleep(1)
+		print('Get order failed')
+		continue
+	checkOpenOrderDiff(newOrders)
+	message = bot.get_updates()[-1].message
+	if (lastMessageId != message.message_id):
+		lastMessageId = message.message_id
+		sendMessage('receive command: ' + message.text)
+		showOrders(orderData)
+	time.sleep(1)
+	# print('----------------------',tickCount)
 	tickCount += 1

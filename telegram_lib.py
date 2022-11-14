@@ -1,9 +1,14 @@
 import telegram
-import socks
+from telegram import Update
+from telegram.ext import filters, MessageHandler, ContextTypes
+
 from keys import *
 
-pp = telegram.utils.request.Request(proxy_url='https://127.0.0.1:7890')
-bot = telegram.Bot(token=tg_api_key, request=pp)
+if (need_proxy):
+	pp = telegram.utils.request.Request(proxy_url='https://127.0.0.1:7890')
+	bot = telegram.Bot(token=tg_api_key, request=pp)
+else:
+	bot = telegram.Bot(token=tg_api_key)
 
 def sendMessage(msg, log = True):
 	if (log):
