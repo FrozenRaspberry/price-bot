@@ -34,10 +34,10 @@ while True:
 	r = GetPoolInfo(poolAddr)
 	price = r[0] / r[1]
 	print(price)
-	if (price < 4.3):
+	if (price < 3.5):
 		print('alert', price)
 		sendMessage('alert:' + str(price))
-	elif  (price > 5.7):
+	elif  (price > 5):
 		print('alert', price)
 		sendMessage('alert:' + str(price))
 	else:
