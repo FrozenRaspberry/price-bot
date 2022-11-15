@@ -10,7 +10,8 @@ if (need_proxy):
 else:
 	bot = telegram.Bot(token=tg_api_key)
 
-def sendMessage(msg, log = True):
-	if (log):
+def sendMessage(msg, log = True, test = False):
+	if log:
 		print('Send msg: ' + msg)
-	bot.send_message(chat_id, text=msg)
+	if not test:
+		bot.send_message(chat_id, text=msg)
