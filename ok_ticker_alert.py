@@ -7,7 +7,7 @@ import datetime
 from telegram_lib import *
 from keys import *
 
-tgTestMode = False
+tgTestMode = True
 sendMessage('ok ticker alert.', test = tgTestMode)
 lastMessageId = 0
 
@@ -65,16 +65,16 @@ def CheckTickers(newTickers):
 	for symbol in newTickers:
 		t = newTickers[symbol]
 		lastPrice = float(t['last'])
-		openPrice = float(t['open24h'])
-		if (lastPrice) / openPrice > 1.06 or lastPrice / openPrice < 0.94:
+		openPrice = float(t['sodUtc8'])
+		if (lastPrice) / openPrice > 1.05 or lastPrice / openPrice < 0.95:
 			if tickerRecorded.get(t['instId']) is None:
 				sendMessage(time.strftime('%H:%M:%S') + ' ' + t['instId'] + ' 目前变化幅度为 ' + str(round(((lastPrice-openPrice)/openPrice*100),2)) + '%  现价' + str(lastPrice) + '  原价' + str(openPrice),test = tgTestMode)
 				tickerRecorded[t['instId']] = lastPrice / openPrice
 			else:
-				if lastPrice / openPrice > 1 and lastPrice / openPrice - tickerRecorded[t['instId']] > 0.005:
+				if lastPrice / openPrice > 1.05 and lastPrice / openPrice - tickerRecorded[t['instId']] > 0.005:
 					sendMessage(time.strftime('%H:%M:%S') + ' ' + t['instId'] + ' 目前变化幅度为 ' + str(round(((lastPrice-openPrice)/openPrice*100),2)) + '%  现价' + str(lastPrice) + '  原价' + str(openPrice),test = tgTestMode)
 					tickerRecorded[t['instId']] = lastPrice / openPrice
-				elif lastPrice / openPrice < 0.94 and lastPrice / openPrice - tickerRecorded[t['instId']] < -0.005:
+				elif lastPrice / openPrice < 0.95 and lastPrice / openPrice - tickerRecorded[t['instId']] < -0.005:
 					sendMessage(time.strftime('%H:%M:%S') + ' ' + t['instId'] + ' 目前变化幅度为 ' + str(round(((lastPrice-openPrice)/openPrice*100),2)) + '%  现价' + str(lastPrice) + '  原价' + str(openPrice),test = tgTestMode)
 					tickerRecorded[t['instId']] = lastPrice / openPrice
 
@@ -85,7 +85,7 @@ def CheckTickers(newTickers):
 # 初始化变量
 tickerRecorded = {}
 tickCount = 0
-lastClearTime = time.time()
+lastClearDay = datetime.date.today().day
 while True:
 	newTickers = GetTickers()
 	if newTickers is None:
@@ -94,8 +94,9 @@ while True:
 	CheckTickers(newTickers)
 	# print('----------------------',tickCount)
 	time.sleep(2)
-	if time.time() - lastClearTime > 24*3600:
-		sendMessage(time.strftime('%H:%M:%S') + ' 24小时已过，清空数据', test = tgTestMode)
-		lastClearTime = time.time()
+	today = datetime.date.today().day
+	if today != lastClearDay:
+		sendMessage(time.strftime('%H:%M:%S') + ' 0点已过，清空数据', test = tgTestMode)
+		lastClearDay = today
 		tickerRecorded = {}
 	tickCount += 1
